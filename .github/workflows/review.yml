@@ -84,10 +84,11 @@ on:
         type: boolean
         default: false
       post-result:
+        # Off by default: posting to a nixpkgs PR is a public step, so each run asks for it.
         description: "Post Result"
         required: true
         type: boolean
-        default: true
+        default: false
       on-success:
         description: "What to do on review success"
         required: true
