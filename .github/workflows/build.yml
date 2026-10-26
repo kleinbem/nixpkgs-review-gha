@@ -110,6 +110,15 @@ jobs:
           ssh-key: ${{ inputs.builders != 'gha' && secrets.SSH_KEY || '' }}
           ssh-cert: ${{ inputs.builders != 'gha' && secrets.SSH_CERT || '' }}
 
+      # Pushes what this job builds to the public cache, as review.yml does,
+      # so others can fetch the results instead of rebuilding them.
+      - name: setup cachix
+        if: ${{ vars.CACHIX_CACHE != '' }}
+        uses: cachix/cachix-action@v17
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
       - name: nix build
         run: nix build --keep-going -L ${{ inputs.packages }}
         if: ${{ inputs.packages != '' }}
