@@ -207,7 +207,7 @@ jobs:
           archive: false
 
       - name: start upterm session
-        if: ${{ inputs.upterm }}
+        if: ${{ !cancelled() && inputs.upterm }}
         uses: owenthereal/action-upterm@v1
         with:
           limit-access-to-actor: true
