@@ -119,9 +119,32 @@ jobs:
           name: ${{ vars.CACHIX_CACHE }}
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      # Keeps failed build directories and samples a build that stops printing, so a
+      # failure leaves evidence; the step timeout ends a hang before the 6 h job limit
+      # so the evidence is still collected.
       - name: nix build
-        run: nix build --keep-going -L ${{ inputs.packages }}
+        id: build
+        run: bash .github/actions/evidence/run-build.sh ${{ inputs.packages }}
         if: ${{ inputs.packages != '' }}
+        timeout-minutes: 340
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/evidence
+
+      - name: collect evidence
+        if: ${{ !cancelled() && steps.build.outcome == 'failure' }}
+        run: bash .github/actions/evidence/collect.sh
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/evidence
+          SYSTEM: ${{ matrix.system }}
+
+      - name: upload evidence
+        if: ${{ !cancelled() && steps.build.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-${{ matrix.system }}
+          path: ${{ runner.temp }}/evidence
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: set GITHUB_TOKEN
         if: ${{ !cancelled() && inputs.upterm }}
