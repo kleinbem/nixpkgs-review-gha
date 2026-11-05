@@ -25,7 +25,8 @@ runs:
   steps:
     - name: reclaim space (linux)
       if: runner.os == 'Linux' && inputs.system != 'riscv64-linux'
-      uses: wimpysworld/nothing-but-nix@main
+      # Pinned before 153c2fb (2026-11-05): with it the Nix installer fails on /nix/tmp.
+      uses: wimpysworld/nothing-but-nix@baf7355748bb5651f08b839669d6bb39051b2874
       with:
         hatchet-protocol: rampage
 
