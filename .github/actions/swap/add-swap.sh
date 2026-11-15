@@ -7,14 +7,17 @@ set -euo pipefail
 gb="${SWAP_GB:?}"
 [[ $gb =~ ^[1-9][0-9]*$ ]] || { echo "::error::swap-gb must be a positive number, got '$gb'"; exit 2; }
 
-avail_gb() { df --output=avail -BG "$1" 2> /dev/null | tail -1 | tr -dc 0-9; }
+# Bytes, not `df -BG`: that rounds up and would let a request through that leaves
+# less than the reserve.
+avail() { df --output=avail -B1 "$1" 2> /dev/null | tail -1 | tr -dc 0-9; }
 
 dir=/
-if [[ -d /mnt && $(avail_gb /mnt) -gt $(avail_gb /) ]]; then dir=/mnt; fi
-free=$(avail_gb "$dir")
-# Leave room for the Nix store and the build directory.
-if (( gb + 10 > free )); then
-  echo "::error::${gb} GB of swap doesn't fit: $dir has ${free} GB free"
+if [[ -d /mnt && $(avail /mnt) -gt $(avail /) ]]; then dir=/mnt; fi
+free=$(avail "$dir")
+gib=$((1024 * 1024 * 1024))
+# Leave 10 GiB for the Nix store and the build directory.
+if (( (gb + 10) * gib > free )); then
+  echo "::error::${gb} GB of swap doesn't fit: $dir has $((free / gib)) GB free"
   exit 1
 fi
 
