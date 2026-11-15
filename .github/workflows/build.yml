@@ -46,6 +46,16 @@ on:
         required: true
         type: boolean
         default: false
+      cores:
+        description: "Cores per build (empty: all). Lower it when a build runs out of memory"
+        required: false
+        type: string
+        default: ""
+      swap-gb:
+        description: "Extra swap in GB on Linux runners (0: none), for builds that need more memory than the runner has"
+        required: false
+        type: string
+        default: "0"
       builders:
         description: "Nix builders to use"
         required: true
@@ -92,6 +102,13 @@ jobs:
           sparse-checkout: |
             /.github/actions
 
+      # Before setup-nix, which hands the free disk space to /nix.
+      - name: add swap
+        if: ${{ runner.os == 'Linux' && inputs.swap-gb != '' && inputs.swap-gb != '0' }}
+        run: bash .github/actions/swap/add-swap.sh
+        env:
+          SWAP_GB: ${{ inputs.swap-gb }}
+
       - name: setup nu
         uses: ./.github/actions/setup-nu
 
@@ -129,6 +146,7 @@ jobs:
         timeout-minutes: 340
         env:
           EVIDENCE_DIR: ${{ runner.temp }}/evidence
+          BUILD_CORES: ${{ inputs.cores }}
 
       - name: collect evidence
         if: ${{ !cancelled() && steps.build.outcome == 'failure' }}

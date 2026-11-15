@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs `nix build --keep-going --keep-failed -L <installables>` with its output in
+# Runs `nix build --keep-going --keep-failed -L <installables>` (with `--cores $BUILD_CORES`
+# when that is set) with its output in
 # $EVIDENCE_DIR/build.log. When the log stays silent for STALL_MINUTES, the build's
 # processes are sampled into $EVIDENCE_DIR/hang/, so a hung build leaves stack traces.
 set -uo pipefail
@@ -13,7 +14,14 @@ touch "$log"
 
 mtime() { stat -c %Y "$1" 2> /dev/null || stat -f %m "$1"; }
 
-nix build --keep-going --keep-failed -L "$@" > >(tee "$log") 2>&1 &
+# BUILD_CORES limits the cores each build uses, for builds that run out of memory.
+cores=()
+if [[ -n ${BUILD_CORES:-} ]]; then
+  [[ $BUILD_CORES =~ ^[1-9][0-9]*$ ]] || { echo "::error::cores must be a positive number, got '$BUILD_CORES'"; exit 2; }
+  cores=(--cores "$BUILD_CORES")
+fi
+
+nix build --keep-going --keep-failed -L ${cores[@]+"${cores[@]}"} "$@" > >(tee "$log") 2>&1 &
 build=$!
 
 sample_builders() {
