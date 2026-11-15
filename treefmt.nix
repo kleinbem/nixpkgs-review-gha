@@ -9,6 +9,7 @@
     "*.md"
     "*.nu"
     "*.patch"
+    "*.sh"
     "*.snap"
     "*/.gitignore"
     ".gitignore"
